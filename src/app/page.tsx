@@ -200,6 +200,7 @@ export default function Home() {
   const [location, setLocation] = useState("New York, NY");
   const [locationInput, setLocationInput] = useState("New York, NY");
   const [editingLocation, setEditingLocation] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [showPro, setShowPro] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -253,7 +254,20 @@ export default function Home() {
     if (!isPro && refreshCount >= FREE_REFRESH_LIMIT) { setShowPro(true); return; }
     setLocation(locationInput);
     setEditingLocation(false);
+    setSuggestions([]);
     if (!isPro) setRefreshCount(r => r + 1);
+  };
+
+  const fetchSuggestions = async (q: string) => {
+    if (q.length < 2) { setSuggestions([]); return; }
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=0`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const data: { display_name: string }[] = await res.json();
+      setSuggestions(data.map(d => d.display_name.split(",").slice(0, 3).join(",")));
+    } catch { setSuggestions([]); }
   };
 
   const handleRefresh = () => {
@@ -286,12 +300,25 @@ export default function Home() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 13, color: "#7A6E65" }}>📍</span>
               {editingLocation ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-                  <input autoFocus value={locationInput} onChange={e => setLocationInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && handleLocationChange()}
-                    style={{ flex: 1, background: "none", border: "none", borderBottom: "1.5px solid #C8956C", fontSize: 13, color: "#1C1C1A", outline: "none", padding: "2px 0" }} />
-                  <button onClick={handleLocationChange} style={{ background: "none", border: "none", color: "#C8956C", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Go</button>
-                  <button onClick={() => setEditingLocation(false)} style={{ background: "none", border: "none", color: "#B0A498", fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input autoFocus value={locationInput}
+                      onChange={e => { setLocationInput(e.target.value); fetchSuggestions(e.target.value); }}
+                      onKeyDown={e => { if (e.key === "Enter") { handleLocationChange(); } if (e.key === "Escape") { setEditingLocation(false); setSuggestions([]); } }}
+                      style={{ flex: 1, background: "none", border: "none", borderBottom: "1.5px solid #C8956C", fontSize: 13, color: "#1C1C1A", outline: "none", padding: "2px 0" }} />
+                    <button onClick={handleLocationChange} style={{ background: "none", border: "none", color: "#C8956C", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Go</button>
+                    <button onClick={() => { setEditingLocation(false); setSuggestions([]); }} style={{ background: "none", border: "none", color: "#B0A498", fontSize: 13, cursor: "pointer" }}>✕</button>
+                  </div>
+                  {suggestions.length > 0 && (
+                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #EDE9E3", borderRadius: 10, boxShadow: "0 4px 16px rgba(0,0,0,0.10)", zIndex: 100, marginTop: 4, overflow: "hidden" }}>
+                      {suggestions.map((s, i) => (
+                        <button key={i} onClick={() => { setLocationInput(s); setSuggestions([]); handleLocationChange(); }}
+                          style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: i < suggestions.length - 1 ? "1px solid #F5F2EE" : "none", padding: "10px 14px", fontSize: 13, color: "#3A3028", cursor: "pointer" }}>
+                          📍 {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <button onClick={() => {
@@ -387,7 +414,7 @@ export default function Home() {
 
             {!isPro && filtered.length > 0 && (
               <button onClick={() => setShowPro(true)} style={{ width: "100%", marginTop: 6, background: "#F5F2EE", border: "1.5px dashed #D0CBC4", borderRadius: 14, padding: "18px 20px", cursor: "pointer", textAlign: "center" }}>
-                <p style={{ fontSize: 15, fontWeight: 600, color: "#3A3028", marginBottom: 5 }}>+{HIDDEN_COUNT} more cafés in your area</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "#3A3028", marginBottom: 5 }}>More cafés in your area</p>
                 <p style={{ fontSize: 13, color: "#7A6E65", lineHeight: 1.55, marginBottom: 12 }}>Expand to 30 km · WiFi details · save your favorites</p>
                 <span style={{ display: "inline-block", background: "#C8956C", color: "#fff", fontWeight: 700, fontSize: 13.5, borderRadius: 9, padding: "8px 18px" }}>
                   Less than a latte — $2.99/mo
