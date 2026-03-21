@@ -18,4 +18,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: cac37448be5af2c0c873bd7b8357b709
-          command: pages deploy .next --project-name officecafes --branch main
+          command: pages deploy out --project-name officecafes --branch main --commit-dirty=true
