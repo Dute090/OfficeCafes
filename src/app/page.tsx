@@ -277,12 +277,9 @@ export default function Home() {
   const fetchSuggestions = async (q: string) => {
     if (q.length < 2) { setSuggestions([]); return; }
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=0`,
-        { headers: { "Accept-Language": "en" } }
-      );
-      const data: { display_name: string }[] = await res.json();
-      setSuggestions(data.map(d => d.display_name.split(",").slice(0, 3).join(",")));
+      const res = await fetch(`https://perch-api.ygtc090.workers.dev/geocode?q=${encodeURIComponent(q)}`);
+      const data: string[] = await res.json();
+      setSuggestions(data);
     } catch { setSuggestions([]); }
   };
 
