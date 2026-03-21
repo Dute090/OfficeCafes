@@ -242,20 +242,36 @@ export default function Home() {
   const handleToggleSave = (id: string) => {
     setSavedCafes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
-  const FREE_REFRESH_LIMIT = 1;
+  const FREE_REFRESH_LIMIT = 0; // any manual location change requires Pro
 
   const filtered = cafes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
   const HIDDEN_COUNT = 12;
   // Only block when user actively tries to refresh/change location again
   const limitReached = isLoggedIn && !isPro && refreshCount >= FREE_REFRESH_LIMIT;
 
-  const handleLocationChange = () => {
+  const handleLocationChange = async () => {
     if (!isLoggedIn) { setShowLogin(true); return; }
-    if (!isPro && refreshCount >= FREE_REFRESH_LIMIT) { setShowPro(true); return; }
+    if (!isPro) { setShowPro(true); return; }
     setLocation(locationInput);
     setEditingLocation(false);
     setSuggestions([]);
-    if (!isPro) setRefreshCount(r => r + 1);
+    // Geocode the typed address → fetch nearby cafés
+    try {
+      setLoadingCafes(true);
+      const geo = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationInput)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const geoData: { lat: string; lon: string }[] = await geo.json();
+      if (geoData.length > 0) {
+        const lat = parseFloat(geoData[0].lat);
+        const lng = parseFloat(geoData[0].lon);
+        setUserCoords({ lat, lng });
+        loadRealCafes(lat, lng);
+      }
+    } catch {
+      setLoadingCafes(false);
+    }
   };
 
   const fetchSuggestions = async (q: string) => {
@@ -272,8 +288,8 @@ export default function Home() {
 
   const handleRefresh = () => {
     if (!isLoggedIn) { setShowLogin(true); return; }
-    if (!isPro && refreshCount >= FREE_REFRESH_LIMIT) { setShowPro(true); return; }
-    if (!isPro) setRefreshCount(r => r + 1);
+    if (!isPro) { setShowPro(true); return; }
+    if (userCoords) loadRealCafes(userCoords.lat, userCoords.lng);
   };
 
   const NAV = [{ id: "home", label: "Home" }, { id: "search", label: "Search" }, { id: "account", label: "Account" }] as const;
@@ -323,7 +339,7 @@ export default function Home() {
               ) : (
                 <button onClick={() => {
                   if (!isLoggedIn) { setShowLogin(true); return; }
-                  if (!isPro && refreshCount >= FREE_REFRESH_LIMIT) { setShowPro(true); return; }
+                  if (!isPro) { setShowPro(true); return; }
                   setEditingLocation(true);
                 }} style={{ background: "none", border: "none", fontSize: 13, color: "#7A6E65", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 5 }}>
                   {location} <span style={{ fontSize: 11, color: "#C8A898" }}>✎</span>
