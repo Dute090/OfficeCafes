@@ -21,7 +21,7 @@ function ShareBtn({ cafe }: { cafe: Cafe }) {
   const [copied, setCopied] = useState(false);
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `https://www.google.com/maps/place/?q=place_id:${cafe.place_id}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${cafe.lat},${cafe.lng}`;
     const text = `☕ ${cafe.name} — great spot to work from`;
     if (navigator.share) {
       await navigator.share({ title: cafe.name, text, url }).catch(() => {});

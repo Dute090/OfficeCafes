@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { demoCafes, Cafe } from "@/lib/data";
+import { demoCafes, fetchCafes, Cafe } from "@/lib/data";
 import CafeCard from "@/components/CafeCard";
 
 const PRO_FEATURES = [
@@ -207,13 +207,43 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [savedCafes, setSavedCafes] = useState<string[]>([]);
+  const [cafes, setCafes] = useState<Cafe[]>(demoCafes);
+  const [loadingCafes, setLoadingCafes] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Get real location + fetch real cafes after login
+  const loadRealCafes = (lat: number, lng: number, radius = 2000) => {
+    setLoadingCafes(true);
+    fetchCafes(lat, lng, radius)
+      .then(data => { if (data.length > 0) setCafes(data); })
+      .catch(() => {})
+      .finally(() => setLoadingCafes(false));
+  };
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          setUserCoords({ lat, lng });
+          setLocation(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          setLocationInput(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          loadRealCafes(lat, lng);
+        },
+        () => loadRealCafes(40.758, -73.9855) // fallback NYC
+      );
+    } else {
+      loadRealCafes(40.758, -73.9855);
+    }
+  };
 
   const handleToggleSave = (id: string) => {
     setSavedCafes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
   const FREE_REFRESH_LIMIT = 1;
 
-  const filtered = demoCafes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = cafes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
   const HIDDEN_COUNT = 12;
   // Only block when user actively tries to refresh/change location again
   const limitReached = isLoggedIn && !isPro && refreshCount >= FREE_REFRESH_LIMIT;
@@ -344,8 +374,14 @@ export default function Home() {
             </button>
           )}
 
+          {isLoggedIn && loadingCafes && (
+            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A6E65", fontSize: 14 }}>
+              ☕ Finding cafés near you...
+            </div>
+          )}
+
           {/* List: always visible after login, list stays until they hit refresh/location */}
-          {isLoggedIn && (<>
+          {isLoggedIn && !loadingCafes && (<>
             {filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
             {filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, textAlign: "center", paddingTop: 32 }}>No cafés found</p>}
 
@@ -389,14 +425,14 @@ export default function Home() {
 
         {tab === "account" && (
           <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes}
-            onLogin={() => setIsLoggedIn(true)}
-            onLogout={() => { setIsLoggedIn(false); setIsPro(false); setRefreshCount(0); setSavedCafes([]); }}
+            onLogin={handleLogin}
+            onLogout={() => { setIsLoggedIn(false); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes(demoCafes); setUserCoords(null); }}
             onShowPro={() => setShowPro(true)}
             onUnsave={handleToggleSave} />
         )}
       </main>
 
-      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => { setIsLoggedIn(true); setShowLogin(false); }} />}
+      {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => { handleLogin(); setShowLogin(false); }} />}
       {showPro && <ProSheet onClose={() => setShowPro(false)} onUpgrade={() => { setIsPro(true); setShowPro(false); }} />}
     </div>
   );
