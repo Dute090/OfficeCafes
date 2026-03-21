@@ -47,59 +47,6 @@ function SaveBtn({ isSaved, onClick }: { isSaved: boolean; onClick: (e: React.Mo
   );
 }
 
-function PhotoStrip({ photos, isPro, onProRequired }: { photos: string[]; isPro: boolean; onProRequired?: () => void }) {
-  const [idx, setIdx] = useState(0);
-  const freePhotos = photos.slice(0, 3);
-  const hasMore = photos.length > 3 && !isPro;
-  const shown = isPro ? photos : freePhotos;
-
-  if (shown.length === 0) return null;
-
-  return (
-    <div style={{ position: "relative", marginBottom: 10, borderRadius: 10, overflow: "hidden" }}>
-      {/* Main photo */}
-      <div style={{ position: "relative", height: 140, background: "#F0EDE8" }}>
-        <img
-          src={shown[idx]}
-          alt=""
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-        />
-        {/* Prev/Next arrows */}
-        {shown.length > 1 && (
-          <>
-            <button onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + shown.length) % shown.length); }}
-              style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.35)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              ‹
-            </button>
-            <button onClick={e => { e.stopPropagation(); setIdx(i => (i + 1) % shown.length); }}
-              style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.35)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              ›
-            </button>
-          </>
-        )}
-        {/* Dot indicators */}
-        <div style={{ position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 4 }}>
-          {shown.map((_, i) => (
-            <span key={i} onClick={e => { e.stopPropagation(); setIdx(i); }}
-              style={{ width: 5, height: 5, borderRadius: "50%", background: i === idx ? "#fff" : "rgba(255,255,255,0.5)", cursor: "pointer" }} />
-          ))}
-        </div>
-        {/* Photo count badge */}
-        <span style={{ position: "absolute", top: 6, right: 8, background: "rgba(0,0,0,0.45)", color: "#fff", fontSize: 10.5, borderRadius: 5, padding: "2px 6px" }}>
-          {idx + 1}/{shown.length}
-        </span>
-      </div>
-      {/* Pro unlock banner */}
-      {hasMore && (
-        <button onClick={e => { e.stopPropagation(); onProRequired?.(); }}
-          style={{ width: "100%", background: "#FFF6F0", border: "none", borderTop: "1px solid #F5DFC0", padding: "7px", fontSize: 12, color: "#C8956C", fontWeight: 600, cursor: "pointer", textAlign: "center" }}>
-          +{photos.length - 3} more photos — Unlock with Pro
-        </button>
-      )}
-    </div>
-  );
-}
 
 function TagChip({ label }: { label: string }) {
   return (
@@ -114,26 +61,17 @@ export default function CafeCard({ cafe, isPro, isLoggedIn, isSaved, onProRequir
   const tags: { label: string }[] = (cafe as any).tags || (isPro
     ? [...cafe.freeTags, ...cafe.proTags]
     : cafe.freeTags);
-  const photos: string[] = (cafe as any).photos || [];
 
   return (
     <div style={{ background: "#fff", borderRadius: 16, marginBottom: 10, boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #EDE9E3", overflow: "hidden" }}>
-
-      {/* Photo strip (if available) */}
-      {photos.length > 0 && (
-        <PhotoStrip photos={photos} isPro={isPro} onProRequired={onProRequired} />
-      )}
-
       <div style={{ padding: "13px 16px 14px" }}>
         {/* Top row: avatar + info + nav */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 13, marginBottom: tags.length > 0 && isLoggedIn ? 10 : 0 }}>
 
-          {/* Avatar (only if no photo) */}
-          {photos.length === 0 && (
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F0EDE8", color: "#5C4F44", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-              {getInitials(cafe.name)}
-            </div>
-          )}
+          {/* Avatar */}
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F0EDE8", color: "#5C4F44", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+            {getInitials(cafe.name)}
+          </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
