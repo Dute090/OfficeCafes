@@ -8,13 +8,16 @@ export interface Cafe {
   id: string;
   name: string;
   address: string;
-  rating: number;
+  rating: number | null;
   reviewCount?: number;
   distance: string;
   isOpen: boolean;
   hours: string;
   freeTags: Tag[];
   proTags: Tag[];
+  tags?: Tag[];        // new API: positive office tags only
+  previewTags?: Tag[]; // new API: empty for unlogged
+  photos?: string[];   // Google Places photo URLs
   lat: number;
   lng: number;
 }
@@ -28,7 +31,6 @@ export async function fetchCafes(lat: number, lng: number, radiusM = 2000): Prom
   return data.cafes;
 }
 
-// Fallback demo data (shown before location is resolved)
 export const demoCafes: Cafe[] = [
   {
     id: "demo-1",
@@ -38,8 +40,8 @@ export const demoCafes: Cafe[] = [
     distance: "0.2 mi",
     isOpen: true,
     hours: "until 6 PM",
-    freeTags: [{ label: "Seating" }, { label: "Long hours" }, { label: "Coffee shop" }],
-    proTags: [{ label: "Free WiFi", proOnly: true }, { label: "Quiet", proOnly: true }, { label: "Outlets", proOnly: true }],
+    freeTags: [{ label: "💻 Good for work" }, { label: "📶 Fast WiFi" }, { label: "🔌 Outlets" }],
+    proTags: [{ label: "🤫 Quiet" }, { label: "⏰ Long stay OK" }, { label: "☕ Great coffee" }],
     lat: 40.742, lng: -74.005,
   },
   {
@@ -50,8 +52,8 @@ export const demoCafes: Cafe[] = [
     distance: "0.5 mi",
     isOpen: true,
     hours: "until 8 PM",
-    freeTags: [{ label: "Seating" }, { label: "Coffee shop" }, { label: "Budget-friendly" }],
-    proTags: [{ label: "Free WiFi", proOnly: true }, { label: "Moderate noise", proOnly: true }],
+    freeTags: [{ label: "📶 Fast WiFi" }, { label: "🏠 Spacious" }, { label: "💰 Affordable" }],
+    proTags: [{ label: "🤫 Quiet" }, { label: "💻 Good for work" }],
     lat: 40.7308, lng: -73.9973,
   },
 ];
