@@ -5,11 +5,11 @@ import { demoCafes, fetchCafes, Cafe } from "@/lib/data";
 import CafeCard from "@/components/CafeCard";
 
 const PRO_FEATURES = [
-  { title: "WiFi & workspace details",   desc: "See WiFi availability, noise level, outlets — powered by Foursquare." },
-  { title: "Save favorite cafés",         desc: "Bookmark your go-to spots for quick access." },
-  { title: "Browse up to 30 km",          desc: "Way more options, way less settling." },
-  { title: "Unlimited location changes",  desc: "Switch neighborhoods and refresh as much as you need." },
-  { title: "Citywide search",             desc: "Find any café by name, anywhere in the city." },
+  { title: "Office-friendly tags",         desc: "See noise level, outlets, seating, and more — extracted from real reviews." },
+  { title: "Save favorite cafés",          desc: "Bookmark your go-to spots for quick access." },
+  { title: "Browse up to 30 km",           desc: "Way more options, way less settling." },
+  { title: "Unlimited location changes",   desc: "Switch neighborhoods and refresh as much as you need." },
+  { title: "Citywide search",              desc: "Find any café by name, anywhere in the city." },
 ];
 
 function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
@@ -85,7 +85,7 @@ function ProSheet({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: () =
       <div style={{ background: "#2C2118", borderRadius: 14, padding: "16px 18px", marginBottom: 16 }}>
         <p style={{ color: "rgba(200,180,160,0.6)", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginBottom: 5 }}>Perch Pro</p>
         <p style={{ color: "#FAF6F2", fontSize: 19, fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }}>Work smarter, wherever you are.</p>
-        <p style={{ color: "rgba(200,180,160,0.65)", fontSize: 13.5, lineHeight: 1.6 }}>Unlock WiFi details, saved spots, and full search.</p>
+        <p style={{ color: "rgba(200,180,160,0.65)", fontSize: 13.5, lineHeight: 1.6 }}>See office tags, save spots, and search anywhere.</p>
       </div>
 
       <Countdown />
@@ -386,7 +386,7 @@ export default function Home() {
           {!isPro && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4 }}>
-                {["WiFi details 🔒", "Save favorites 🔒", "30 km radius 🔒", "Citywide search 🔒"].map((f, i) => (
+                {["Office tags 🔒", "Save favorites 🔒", "30 km radius 🔒", "Citywide search 🔒"].map((f, i) => (
                   <button key={i} onClick={() => setShowPro(true)} style={{ flexShrink: 0, background: "#F0EDE8", border: "none", borderRadius: 9, padding: "6px 12px", fontSize: 12.5, fontWeight: 500, color: "#5C4F44", cursor: "pointer", whiteSpace: "nowrap" }}>{f}</button>
                 ))}
               </div>
@@ -431,7 +431,7 @@ export default function Home() {
             {!isPro && filtered.length > 0 && (
               <button onClick={() => setShowPro(true)} style={{ width: "100%", marginTop: 6, background: "#F5F2EE", border: "1.5px dashed #D0CBC4", borderRadius: 14, padding: "18px 20px", cursor: "pointer", textAlign: "center" }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: "#3A3028", marginBottom: 5 }}>More cafés in your area</p>
-                <p style={{ fontSize: 13, color: "#7A6E65", lineHeight: 1.55, marginBottom: 12 }}>Expand to 30 km · WiFi details · save your favorites</p>
+                <p style={{ fontSize: 13, color: "#7A6E65", lineHeight: 1.55, marginBottom: 12 }}>More cafés · office tags · save your favorites</p>
                 <span style={{ display: "inline-block", background: "#C8956C", color: "#fff", fontWeight: 700, fontSize: 13.5, borderRadius: 9, padding: "8px 18px" }}>
                   Less than a latte — $2.99/mo
                 </span>
