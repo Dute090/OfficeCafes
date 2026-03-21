@@ -339,8 +339,7 @@ export default function Home() {
               ) : (
                 <button onClick={() => {
                   if (!isLoggedIn) { setShowLogin(true); return; }
-                  if (!isPro) { setShowPro(true); return; }
-                  setEditingLocation(true);
+                  setEditingLocation(true); // open input for all logged-in users; Pro check on submit
                 }} style={{ background: "none", border: "none", fontSize: 13, color: "#7A6E65", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 5 }}>
                   {location} <span style={{ fontSize: 11, color: "#C8A898" }}>✎</span>
                 </button>
