@@ -14,14 +14,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Upgrade npm
-        run: npm install -g npm@10
-
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: yarn install --ignore-engines
 
       - name: Build
-        run: npm run build
+        run: yarn build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
