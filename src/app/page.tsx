@@ -49,7 +49,7 @@ function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: () => 
 }
 
 const PRO_PLANS = [
-  { id: "day",   label: "Day Pass",  price: "$0.99",  origPrice: "",      period: "one-time", badge: "",           desc: "Perfect for a one-off work session" },
+  { id: "day",   label: "Day Pass",  price: "$0.99",  origPrice: "",      period: "24 hours", badge: "",           desc: "Perfect for a one-off work session" },
   { id: "week",  label: "Weekly",    price: "$2.99",  origPrice: "",      period: "/week",    badge: "",           desc: "Great for short-term remote work" },
   { id: "month", label: "Monthly",   price: "$6.99",  origPrice: "$8.99", period: "/month",   badge: "Best Value", desc: "Save 60% — limited time offer" },
 ];
