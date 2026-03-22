@@ -128,7 +128,7 @@ function ProSheet({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: () =
   );
 }
 
-function AccountSection({ isLoggedIn, isPro, savedCafes, onLogin, onLogout, onShowPro, onUnsave }: { isLoggedIn: boolean; isPro: boolean; savedCafes: string[]; onLogin: () => void; onLogout: () => void; onShowPro: () => void; onUnsave: (id: string) => void }) {
+function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLogout, onShowPro, onUnsave }: { isLoggedIn: boolean; isPro: boolean; savedCafes: string[]; allCafes: Cafe[]; onLogin: () => void; onLogout: () => void; onShowPro: () => void; onUnsave: (id: string) => void }) {
   if (!isLoggedIn) return (
     <div style={{ padding: "36px 0" }}>
       <h2 style={{ fontSize: 26, fontWeight: 700, color: "#1C1C1A", letterSpacing: -0.5, marginBottom: 8 }}>Account</h2>
@@ -168,7 +168,7 @@ function AccountSection({ isLoggedIn, isPro, savedCafes, onLogin, onLogout, onSh
         {isPro
           ? savedCafes.length > 0
             ? (() => {
-                const saved = demoCafes.filter(c => savedCafes.includes(c.id));
+                const saved = allCafes.filter(c => savedCafes.includes(c.id));
                 return (
                   <div>
                     {saved.map((cafe, i) => (
@@ -463,7 +463,7 @@ export default function Home() {
         </>)}
 
         {tab === "account" && (
-          <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes}
+          <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes} allCafes={cafes}
             onLogin={handleLogin}
             onLogout={() => { setIsLoggedIn(false); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes(demoCafes); setUserCoords(null); }}
             onShowPro={() => setShowPro(true)}
