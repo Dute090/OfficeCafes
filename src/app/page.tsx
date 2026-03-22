@@ -197,8 +197,8 @@ function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLo
 
 export default function Home() {
   const [tab, setTab] = useState<"home" | "search" | "account">("home");
-  const [location, setLocation] = useState("New York, NY");
-  const [locationInput, setLocationInput] = useState("New York, NY");
+  const [location, setLocation] = useState("");
+  const [locationInput, setLocationInput] = useState("");
   const [editingLocation, setEditingLocation] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -228,11 +228,20 @@ export default function Home() {
         pos => {
           const { latitude: lat, longitude: lng } = pos.coords;
           setUserCoords({ lat, lng });
-          setLocation(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-          setLocationInput(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          // reverse geocode to get readable address
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en" } })
+            .then(r => r.json())
+            .then((d: { address?: { city?: string; town?: string; state?: string; country?: string } }) => {
+              const a = d.address || {};
+              const city = a.city || a.town || "";
+              const state = a.state || "";
+              const readable = [city, state].filter(Boolean).join(", ");
+              if (readable) { setLocation(readable); setLocationInput(readable); }
+            })
+            .catch(() => {});
           loadRealCafes(lat, lng);
         },
-        () => loadRealCafes(40.758, -73.9855) // fallback NYC
+        () => loadRealCafes(40.758, -73.9855) // fallback NYC data, no location label
       );
     } else {
       loadRealCafes(40.758, -73.9855);
@@ -337,8 +346,8 @@ export default function Home() {
                 <button onClick={() => {
                   if (!isLoggedIn) { setShowLogin(true); return; }
                   setEditingLocation(true); // open input for all logged-in users; Pro check on submit
-                }} style={{ background: "none", border: "none", fontSize: 13, color: "#7A6E65", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 5 }}>
-                  {location} <span style={{ fontSize: 11, color: "#C8A898" }}>✎</span>
+                }} style={{ background: "none", border: "none", fontSize: 13, color: location ? "#7A6E65" : "#C8956C", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 5 }}>
+                  {location ? <>{location} <span style={{ fontSize: 11, color: "#C8A898" }}>✎</span></> : <span style={{ fontWeight: 500 }}>Tap to set location</span>}
                 </button>
               )}
             </div>
