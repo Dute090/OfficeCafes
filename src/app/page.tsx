@@ -208,7 +208,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [savedCafes, setSavedCafes] = useState<string[]>([]);
-  const [cafes, setCafes] = useState<Cafe[]>(demoCafes);
+  const [cafes, setCafes] = useState<Cafe[]>([]);
   const [loadingCafes, setLoadingCafes] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -228,10 +228,9 @@ export default function Home() {
         pos => {
           const { latitude: lat, longitude: lng } = pos.coords;
           setUserCoords({ lat, lng });
-          // reverse geocode to get readable address
           fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en" } })
             .then(r => r.json())
-            .then((d: { address?: { city?: string; town?: string; state?: string; country?: string } }) => {
+            .then((d: { address?: { city?: string; town?: string; state?: string } }) => {
               const a = d.address || {};
               const city = a.city || a.town || "";
               const state = a.state || "";
@@ -241,11 +240,12 @@ export default function Home() {
             .catch(() => {});
           loadRealCafes(lat, lng);
         },
-        () => loadRealCafes(40.758, -73.9855) // fallback NYC data, no location label
+        () => {
+          // User denied geolocation — wait for manual input, show nothing
+        }
       );
-    } else {
-      loadRealCafes(40.758, -73.9855);
     }
+    // No geolocation support — wait for manual input
   };
 
   const handleToggleSave = (id: string) => {
@@ -260,7 +260,8 @@ export default function Home() {
 
   const handleLocationChange = async () => {
     if (!isLoggedIn) { setShowLogin(true); return; }
-    if (!isPro) { setShowPro(true); return; }
+    // First-time location setup is free; subsequent changes require Pro
+    if (isPro === false && location !== "") { setShowPro(true); return; }
     setLocation(locationInput);
     setEditingLocation(false);
     setSuggestions([]);
@@ -345,7 +346,7 @@ export default function Home() {
               ) : (
                 <button onClick={() => {
                   if (!isLoggedIn) { setShowLogin(true); return; }
-                  setEditingLocation(true); // open input for all logged-in users; Pro check on submit
+                  setEditingLocation(true);
                 }} style={{ background: "none", border: "none", fontSize: 13, color: location ? "#7A6E65" : "#C8956C", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 5 }}>
                   {location ? <>{location} <span style={{ fontSize: 11, color: "#C8A898" }}>✎</span></> : <span style={{ fontWeight: 500 }}>Tap to set location</span>}
                 </button>
@@ -428,8 +429,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* List: always visible after login, list stays until they hit refresh/location */}
-          {isLoggedIn && !loadingCafes && (<>
+          {/* List: only shown after login + location resolved */}
+          {isLoggedIn && !loadingCafes && cafes.length > 0 && (<>
             {filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
             {filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, textAlign: "center", paddingTop: 32 }}>No cafés found</p>}
 
@@ -443,6 +444,14 @@ export default function Home() {
               </button>
             )}
           </>)}
+
+          {/* Logged in, location set, but no cafes loaded yet (denied geolocation, waiting for manual input) */}
+          {isLoggedIn && !loadingCafes && cafes.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A", marginBottom: 6 }}>Where are you working from?</p>
+              <p style={{ fontSize: 13, color: "#7A6E65" }}>Tap the location above to enter your city or address.</p>
+            </div>
+          )}
         </>)}
 
         {tab === "search" && (<>
