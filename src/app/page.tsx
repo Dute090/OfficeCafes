@@ -94,7 +94,7 @@ function ProSheet({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: () =
       {/* Plan selector */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {PRO_PLANS.map(p => (
-          <button key={p.id} onClick={() => setSelected(p.id as any)}
+          <button key={p.id} onClick={() => setSelected(p.id as "day" | "week" | "month")}
             style={{ flex: 1, position: "relative", background: selected === p.id ? "#FFF6F0" : "#fff", border: `1.5px solid ${selected === p.id ? "#C8956C" : "#EDE9E3"}`, borderRadius: 12, padding: "12px 8px", cursor: "pointer", textAlign: "center" }}>
             {p.badge ? <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", background: "#C8956C", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 6, padding: "2px 7px", whiteSpace: "nowrap" }}>{p.badge}</span> : null}
             <p style={{ fontSize: 12, fontWeight: 600, color: "#7A6E65", marginBottom: 4 }}>{p.label}</p>
@@ -205,7 +205,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [showPro, setShowPro] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const isLoggedIn = status === "authenticated";
   const [isPro, setIsPro] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
@@ -260,7 +260,6 @@ export default function Home() {
   const FREE_REFRESH_LIMIT = 0; // any manual location change requires Pro
 
   const filtered = cafes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
-  const HIDDEN_COUNT = 12;
   // Only block when user actively tries to refresh/change location again
   const limitReached = isLoggedIn && !isPro && refreshCount >= FREE_REFRESH_LIMIT;
 
@@ -483,7 +482,7 @@ export default function Home() {
           )}
           {isPro && search === "" && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Type to search any café, citywide.</p>}
           {isPro && filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
-          {isPro && search !== "" && filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>No results for "{search}"</p>}
+          {isPro && search !== "" && filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>No results for &ldquo;{search}&rdquo;</p>}
         </>)}
 
         {tab === "account" && (

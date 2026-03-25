@@ -17,16 +17,16 @@ jobs:
       - name: Install dependencies
         run: yarn install --ignore-engines
 
-      - name: Build
+      - name: Build (next-on-pages)
         env:
           NEXTAUTH_URL: https://perchspaceco.online
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-        run: yarn build
+        run: npx @cloudflare/next-on-pages
 
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: cac37448be5af2c0c873bd7b8357b709
-        run: npx wrangler@latest pages deploy .next --project-name officecafes --commit-dirty=true
+        run: npx wrangler@latest pages deploy .vercel/output/static --project-name officecafes --commit-dirty=true

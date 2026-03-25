@@ -58,7 +58,7 @@ function TagChip({ label }: { label: string }) {
 
 export default function CafeCard({ cafe, isPro, isLoggedIn, isSaved, onProRequired, onLoginRequired, onToggleSave }: CafeCardProps) {
   // New API: tags (positive only, 5-7), photos; fallback to legacy freeTags/proTags
-  const tags: { label: string }[] = (cafe as any).tags || (isPro
+  const tags: { label: string }[] = (cafe as unknown as { tags?: { label: string }[] }).tags || (isPro
     ? [...cafe.freeTags, ...cafe.proTags]
     : cafe.freeTags);
 

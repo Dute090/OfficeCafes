@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import BottomNav from "@/components/BottomNav";
+
 
 interface PlanFeature {
   label: string;
