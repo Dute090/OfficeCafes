@@ -129,7 +129,7 @@ function ProSheet({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: () =
   );
 }
 
-function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLogout, onShowPro, onUnsave }: { isLoggedIn: boolean; isPro: boolean; savedCafes: string[]; allCafes: Cafe[]; onLogin: () => void; onLogout: () => void; onShowPro: () => void; onUnsave: (id: string) => void }) {
+function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLogout, onShowPro, onUnsave, userName, userEmail }: { isLoggedIn: boolean; isPro: boolean; savedCafes: string[]; allCafes: Cafe[]; onLogin: () => void; onLogout: () => void; onShowPro: () => void; onUnsave: (id: string) => void; userName?: string | null; userEmail?: string | null }) {
   if (!isLoggedIn) return (
     <div style={{ padding: "36px 0" }}>
       <h2 style={{ fontSize: 26, fontWeight: 700, color: "#1C1C1A", letterSpacing: -0.5, marginBottom: 8 }}>Account</h2>
@@ -141,10 +141,10 @@ function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLo
     <div style={{ padding: "36px 0" }}>
       <h2 style={{ fontSize: 26, fontWeight: 700, color: "#1C1C1A", letterSpacing: -0.5, marginBottom: 22 }}>Account</h2>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingBottom: 18, borderBottom: "1px solid #EDE9E3" }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: "#EDE9E3", color: "#4A3F36", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16 }}>U</div>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: "#EDE9E3", color: "#4A3F36", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16 }}>{(userName || "U")[0].toUpperCase()}</div>
         <div>
-          <p style={{ fontWeight: 600, fontSize: 15, color: "#1C1C1A", marginBottom: 2 }}>User</p>
-          <p style={{ fontSize: 13, color: "#7A6E65" }}>user@gmail.com</p>
+          <p style={{ fontWeight: 600, fontSize: 15, color: "#1C1C1A", marginBottom: 2 }}>{userName || "User"}</p>
+          <p style={{ fontSize: 13, color: "#7A6E65" }}>{userEmail || ""}</p>
         </div>
       </div>
       {!isPro ? (
@@ -205,7 +205,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [showPro, setShowPro] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const isLoggedIn = status === "authenticated";
   const [isPro, setIsPro] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
@@ -490,7 +490,9 @@ export default function Home() {
             onLogin={handleLogin}
             onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes(demoCafes); setUserCoords(null); }}
             onShowPro={() => setShowPro(true)}
-            onUnsave={handleToggleSave} />
+            onUnsave={handleToggleSave}
+            userName={session?.user?.name}
+            userEmail={session?.user?.email} />
         )}
       </main>
 
