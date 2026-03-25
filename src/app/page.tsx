@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import { demoCafes, fetchCafes, Cafe } from "@/lib/data";
 import CafeCard from "@/components/CafeCard";
 
@@ -204,8 +205,9 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [showPro, setShowPro] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const { data: session, status } = useSession();
+  const isLoggedIn = status === "authenticated";
   const [isPro, setIsPro] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [savedCafes, setSavedCafes] = useState<string[]>([]);
   const [cafes, setCafes] = useState<Cafe[]>([]);
@@ -222,31 +224,35 @@ export default function Home() {
   };
 
   const handleLogin = () => {
-    setIsLoggedIn(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude: lat, longitude: lng } = pos.coords;
-          setUserCoords({ lat, lng });
-          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en" } })
-            .then(r => r.json())
-            .then((d: { address?: { city?: string; town?: string; state?: string } }) => {
-              const a = d.address || {};
-              const city = a.city || a.town || "";
-              const state = a.state || "";
-              const readable = [city, state].filter(Boolean).join(", ");
-              if (readable) { setLocation(readable); setLocationInput(readable); }
-            })
-            .catch(() => {});
-          loadRealCafes(lat, lng);
-        },
-        () => {
-          // User denied geolocation — wait for manual input, show nothing
-        }
-      );
-    }
-    // No geolocation support — wait for manual input
+    signIn("google");
   };
+
+  // Load cafes when user logs in
+  useEffect(() => {
+    if (isLoggedIn && cafes.length === 0) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            setUserCoords({ lat, lng });
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en" } })
+              .then(r => r.json())
+              .then((d: { address?: { city?: string; town?: string; state?: string } }) => {
+                const a = d.address || {};
+                const city = a.city || a.town || "";
+                const state = a.state || "";
+                const readable = [city, state].filter(Boolean).join(", ");
+                if (readable) { setLocation(readable); setLocationInput(readable); }
+              })
+              .catch(() => {});
+            loadRealCafes(lat, lng);
+          },
+          () => {}
+        );
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
 
   const handleToggleSave = (id: string) => {
     setSavedCafes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -483,7 +489,7 @@ export default function Home() {
         {tab === "account" && (
           <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes} allCafes={cafes}
             onLogin={handleLogin}
-            onLogout={() => { setIsLoggedIn(false); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes(demoCafes); setUserCoords(null); }}
+            onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes(demoCafes); setUserCoords(null); }}
             onShowPro={() => setShowPro(true)}
             onUnsave={handleToggleSave} />
         )}
