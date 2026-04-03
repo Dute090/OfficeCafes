@@ -78,9 +78,32 @@ function Countdown() {
   );
 }
 
-function ProSheet({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: () => void }) {
+function ProSheet({ onClose, onUpgrade, userId }: { onClose: () => void; onUpgrade: () => void; userId?: string }) {
   const [selected, setSelected] = useState<"day" | "week" | "month">("month");
+  const [loading, setLoading] = useState(false);
   const plan = PRO_PLANS.find(p => p.id === selected)!;
+
+  const handleCheckout = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const res = await fetch("https://perch-api.ygtc090.workers.dev/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: selected, userId }),
+      });
+      const data = await res.json() as { approvalUrl?: string; error?: string };
+      if (data.approvalUrl) {
+        window.location.href = data.approvalUrl;
+      } else {
+        alert("Payment error, please try again.");
+        setLoading(false);
+      }
+    } catch {
+      alert("Network error, please try again.");
+      setLoading(false);
+    }
+  };
   return (
     <Sheet onClose={onClose}>
       <div style={{ background: "#2C2118", borderRadius: 14, padding: "16px 18px", marginBottom: 16 }}>
@@ -121,8 +144,8 @@ function ProSheet({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: () =
         ))}
       </div>
 
-      <button onClick={onUpgrade} style={{ width: "100%", background: "#C8956C", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 16, fontWeight: 700, cursor: "pointer", marginBottom: 8 }}>
-        Get {plan.label} — {plan.price}{plan.id !== "day" ? plan.period : ""}
+      <button onClick={handleCheckout} disabled={loading} style={{ width: "100%", background: loading ? "#D4A882" : "#C8956C", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginBottom: 8 }}>
+        {loading ? "Redirecting to PayPal…" : `Get ${plan.label} — ${plan.price}${plan.id !== "day" ? plan.period : ""}`}
       </button>
       <p style={{ textAlign: "center", fontSize: 12, color: "#B0A498" }}>Secure payment via PayPal{plan.id !== "day" ? " · Cancel anytime" : ""}</p>
     </Sheet>
@@ -253,6 +276,17 @@ export default function Home() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
+
+  // Check Pro status from Worker KV on login
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (isLoggedIn && userId) {
+      fetch(`https://perch-api.ygtc090.workers.dev/pro-status?userId=${encodeURIComponent(userId)}`)
+        .then(r => r.json())
+        .then((d: { isPro: boolean }) => { if (d.isPro) setIsPro(true); })
+        .catch(() => {});
+    }
+  }, [isLoggedIn, session?.user?.id]);
 
   const handleToggleSave = (id: string) => {
     setSavedCafes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -497,7 +531,7 @@ export default function Home() {
       </main>
 
       {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => { handleLogin(); setShowLogin(false); }} />}
-      {showPro && <ProSheet onClose={() => setShowPro(false)} onUpgrade={() => { setIsPro(true); setShowPro(false); }} />}
+      {showPro && <ProSheet onClose={() => setShowPro(false)} onUpgrade={() => { setIsPro(true); setShowPro(false); }} userId={session?.user?.id ?? undefined} />}
     </div>
   );
 }
