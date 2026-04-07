@@ -50,9 +50,9 @@ function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: () => 
 }
 
 const PRO_PLANS = [
-  { id: "day",   label: "Day Pass",  price: "$0.99",  origPrice: "",      period: "24 hours", badge: "",           desc: "Perfect for a one-off work session" },
-  { id: "week",  label: "Weekly",    price: "$2.99",  origPrice: "",      period: "/week",    badge: "",           desc: "Great for short-term remote work" },
-  { id: "month", label: "Monthly",   price: "$6.99",  origPrice: "$8.99", period: "/month",   badge: "Best Value", desc: "Save 60% — limited time offer" },
+  { id: "day",   label: "Day Pass",  price: "$0.99",  origPrice: "",      period: "24h access",    badge: "",           desc: "Perfect for a one-off work session" },
+  { id: "week",  label: "7-Day",     price: "$2.99",  origPrice: "",      period: "7-day access",  badge: "",           desc: "Great for short-term remote work" },
+  { id: "month", label: "30-Day",    price: "$6.99",  origPrice: "$8.99", period: "30-day access", badge: "Best Value", desc: "Save 60% — limited time offer" },
 ];
 
 function Countdown() {
@@ -147,7 +147,7 @@ function ProSheet({ onClose, onUpgrade, userId }: { onClose: () => void; onUpgra
       <button onClick={handleCheckout} disabled={loading} style={{ width: "100%", background: loading ? "#D4A882" : "#C8956C", color: "#fff", border: "none", borderRadius: 13, padding: "15px", fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginBottom: 8 }}>
         {loading ? "Redirecting to PayPal…" : `Get ${plan.label} — ${plan.price}${plan.id !== "day" ? plan.period : ""}`}
       </button>
-      <p style={{ textAlign: "center", fontSize: 12, color: "#B0A498" }}>Secure payment via PayPal{plan.id !== "day" ? " · Cancel anytime" : ""}</p>
+      <p style={{ textAlign: "center", fontSize: 12, color: "#B0A498" }}>Secure payment via PayPal · One-time charge, no auto-renewal</p>
     </Sheet>
   );
 }
@@ -183,7 +183,7 @@ function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLo
           <span style={{ color: "#5A9E6F", fontSize: 17 }}>✓</span>
           <div>
             <p style={{ fontWeight: 600, fontSize: 14.5, color: "#3A7A52", marginBottom: 2 }}>Pro · Active</p>
-            <p style={{ fontSize: 13, color: "#5A9E6F" }}>Renews Apr 20, 2026 · $6.99/mo</p>
+            <p style={{ fontSize: 13, color: "#5A9E6F" }}>Active · expires in 30 days</p>
           </div>
         </div>
       )}
@@ -478,7 +478,7 @@ export default function Home() {
                 <p style={{ fontSize: 15, fontWeight: 600, color: "#3A3028", marginBottom: 5 }}>More cafés in your area</p>
                 <p style={{ fontSize: 13, color: "#7A6E65", lineHeight: 1.55, marginBottom: 12 }}>More cafés · office tags · save your favorites</p>
                 <span style={{ display: "inline-block", background: "#C8956C", color: "#fff", fontWeight: 700, fontSize: 13.5, borderRadius: 9, padding: "8px 18px" }}>
-                  Less than a latte — $2.99/mo
+                  Less than a latte — $2.99 for 7 days
                 </span>
               </button>
             )}
