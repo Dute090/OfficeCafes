@@ -215,10 +215,20 @@ var index_default = {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
       });
       const data = await res.json();
-      if (!res.ok || data.status !== "COMPLETED") {
+      // ORDER_ALREADY_CAPTURED means payment succeeded on a prior attempt — treat as success
+      const alreadyCaptured = !res.ok && data.details?.some((d) => d.issue === "ORDER_ALREADY_CAPTURED");
+      if (!alreadyCaptured && (!res.ok || data.status !== "COMPLETED")) {
         return new Response(JSON.stringify({ success: false, error: data }), { status: 400, headers: CORS });
       }
-      const customId = data.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id || "";
+      // For already-captured orders, fetch order details to get customId
+      let customId = data.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id || "";
+      if (alreadyCaptured) {
+        const orderRes = await fetch(`${env.PAYPAL_BASE}/v2/checkout/orders/${orderId}`, {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+        });
+        const orderData = await orderRes.json();
+        customId = orderData.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id || orderData.purchase_units?.[0]?.custom_id || "";
+      }
       const [userId, plan] = customId.split("|");
       if (!userId || !plan) {
         return new Response(JSON.stringify({ success: false, error: "Missing custom_id" }), { status: 400, headers: CORS });
