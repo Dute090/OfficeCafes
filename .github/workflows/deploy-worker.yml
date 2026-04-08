@@ -21,7 +21,5 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: cac37448be5af2c0c873bd7b8357b709
         run: |
-          npx wrangler@latest deploy worker/perch-api.js \
-            --name perch-api \
-            --compatibility-date 2024-09-23 \
-            --compatibility-flag nodejs_compat
+          cd worker
+          npx wrangler@latest deploy
