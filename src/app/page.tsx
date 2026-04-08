@@ -396,7 +396,7 @@ export default function Home() {
               Find a café<br />worth working from.
             </h1>
             <p style={{ fontSize: 15, color: "#6B5E53", lineHeight: 1.7 }}>
-              WiFi, outlets, noise level — know before you go.
+              Outlets, noise level, and more — know before you go.
             </p>
           </div>
 

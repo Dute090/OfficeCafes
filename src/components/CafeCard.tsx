@@ -97,16 +97,15 @@ export default function CafeCard({ cafe, isPro, isLoggedIn, isSaved, onProRequir
                 <span style={{ fontSize: 13, color: "#4A3F36", fontWeight: 500 }}>{cafe.rating}</span>
                 <span style={{ color: "#DDD8D2", fontSize: 10 }}>|</span>
               </>}
-              <span style={{ fontSize: 12.5, color: "#7A6E65" }}>{cafe.distance} away</span>
+              <span style={{ fontSize: 12.5, color: "#7A6E65" }}>{cafe.address.split(",")[0]}</span>
+              <span style={{ color: "#DDD8D2", fontSize: 10 }}>|</span>
+              <span style={{ fontSize: 12.5, color: "#7A6E65" }}>{cafe.distance}</span>
             </div>
           </div>
 
           <button onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/dir/?api=1&destination=${cafe.lat},${cafe.lng}`, "_blank"); }}
             style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 3, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-            <span style={{ fontSize: 13, color: "#C8956C", fontWeight: 500 }}>→ Maps</span>
-            <span style={{ fontSize: 10.5, color: "#B0A498", maxWidth: 72, textAlign: "right", lineHeight: 1.3 }}>
-              {cafe.address.split(",")[0]}
-            </span>
+            <span style={{ fontSize: 13, color: "#C8956C", fontWeight: 500 }}>→ Go</span>
           </button>
         </div>
 
