@@ -1,0 +1,27 @@
+name: Deploy Perch API Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/perch-api.js'
+
+jobs:
+  deploy-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deploy Worker to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: cac37448be5af2c0c873bd7b8357b709
+        run: |
+          npx wrangler@latest deploy worker/perch-api.js \
+            --name perch-api \
+            --compatibility-date 2024-09-23 \
+            --compatibility-flag nodejs_compat
