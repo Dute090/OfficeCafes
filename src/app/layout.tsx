@@ -76,6 +76,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        {/* Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Perch",
+              "url": "https://perchspaceco.online",
+              "description": "Find work-friendly cafés near you. Filter by WiFi speed, outlets, noise level, and more.",
+              "applicationCategory": "TravelApplication",
+              "operatingSystem": "Any",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD",
+                "description": "Free to use, Pro plan from $0.99"
+              },
+              "author": {
+                "@type": "Organization",
+                "name": "Perch",
+                "url": "https://perchspaceco.online"
+              }
+            })
+          }}
+        />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-R9FSQKXKXG"
           strategy="afterInteractive"
