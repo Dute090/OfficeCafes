@@ -277,16 +277,15 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
-  // Check Pro status from Worker KV on login
+  // Check Pro status via server-side session (userId never exposed to client)
   useEffect(() => {
-    const userId = session?.user?.id;
-    if (isLoggedIn && userId) {
-      fetch(`https://perch-api.ygtc090.workers.dev/pro-status?userId=${encodeURIComponent(userId)}`)
+    if (isLoggedIn) {
+      fetch(`/api/pro-status`)
         .then(r => r.json())
         .then((d: { isPro: boolean }) => { if (d.isPro) setIsPro(true); })
         .catch(() => {});
     }
-  }, [isLoggedIn, session?.user?.id]);
+  }, [isLoggedIn]);
 
   const handleToggleSave = (id: string) => {
     setSavedCafes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
