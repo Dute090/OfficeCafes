@@ -18,12 +18,40 @@ var PLAN_CONFIG = {
   week: { amount: "2.99", days: 7, label: "Perch Weekly" },
   month: { amount: "6.99", days: 30, label: "Perch Monthly" }
 };
-var CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Content-Type": "application/json"
-};
+var ALLOWED_ORIGINS = [
+  "https://perchspaceco.online",
+  "https://www.perchspaceco.online"
+];
+
+function getCorsHeaders(request) {
+  const origin = request.headers.get("Origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Content-Type": "application/json",
+    "Vary": "Origin"
+  };
+}
+
+// Rate limiting: max `limit` requests per IP per `windowSec` seconds
+async function checkRateLimit(env, key, limit, windowSec) {
+  const kvKey = `rl:${key}`;
+  const raw = await env.PRO_USERS.get(kvKey);
+  const now = Math.floor(Date.now() / 1000);
+  let data = raw ? JSON.parse(raw) : { count: 0, window: now };
+
+  // Reset if window expired
+  if (now - data.window >= windowSec) {
+    data = { count: 0, window: now };
+  }
+
+  data.count += 1;
+  await env.PRO_USERS.put(kvKey, JSON.stringify(data), { expirationTtl: windowSec * 2 });
+
+  return data.count <= limit;
+}
 var TAG_RULES = [
   // === WORK-CRITICAL (priority 1) ===
   { label: "Fast WiFi", icon: "\u{1F4F6}", priority: 1, keywords: ["wifi fast", "wifi great", "wifi good", "wifi strong", "internet fast", "great wifi", "good wifi", "fast wifi", "strong wifi", "wifi speed", "fast internet"], positive: true, mutex: "wifi" },
@@ -89,9 +117,22 @@ function isCoffeePlace(name, reviews) {
 
 var index_default = {
   async fetch(request, env) {
-    if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
+    const cors = getCorsHeaders(request);
+    if (request.method === "OPTIONS") return new Response(null, { headers: cors });
     const url = new URL(request.url);
+
+    // Get client IP for rate limiting
+    const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
+
     if (url.pathname === "/cafes") {
+      // Rate limit: 20 requests per IP per 60 seconds
+      const allowed = await checkRateLimit(env, `cafes:${ip}`, 20, 60);
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Too many requests" }), {
+          status: 429,
+          headers: { ...cors, "Retry-After": "60" }
+        });
+      }
       const lat = url.searchParams.get("lat") || "40.7580";
       const lng = url.searchParams.get("lng") || "-73.9855";
       const radius = url.searchParams.get("radius") || "2000";
@@ -117,7 +158,7 @@ var index_default = {
         body: JSON.stringify(body)
       });
       const data = await res.json();
-      if (!res.ok) return new Response(JSON.stringify(data), { status: res.status, headers: CORS });
+      if (!res.ok) return new Response(JSON.stringify(data), { status: res.status, headers: cors });
       const cafes = await Promise.all(
         (data.places || []).filter((p) => isCafe(p.displayName?.text || "") && isCoffeePlace(p.displayName?.text || "", p.reviews || [])).map(async (p) => {
           const isOpen = p.currentOpeningHours?.openNow ?? p.regularOpeningHours?.openNow ?? null;
@@ -165,23 +206,31 @@ var index_default = {
           };
         })
       );
-      return new Response(JSON.stringify({ cafes }), { headers: CORS });
+      return new Response(JSON.stringify({ cafes }), { headers: cors });
     }
     if (url.pathname === "/geocode") {
       const q = url.searchParams.get("q") || "";
-      if (!q) return new Response(JSON.stringify([]), { headers: CORS });
+      if (!q) return new Response(JSON.stringify([]), { headers: cors });
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=0`,
         { headers: { "Accept-Language": "en", "User-Agent": "OfficeCafes/1.0" } }
       );
       const data = await res.json();
       const suggestions = data.map((d) => d.display_name.split(",").slice(0, 3).join(",").trim());
-      return new Response(JSON.stringify(suggestions), { headers: CORS });
+      return new Response(JSON.stringify(suggestions), { headers: cors });
     }
     if (url.pathname === "/create-order" && request.method === "POST") {
+      // Rate limit: 10 order attempts per IP per 60 seconds
+      const orderAllowed = await checkRateLimit(env, `order:${ip}`, 10, 60);
+      if (!orderAllowed) {
+        return new Response(JSON.stringify({ error: "Too many requests" }), {
+          status: 429,
+          headers: { ...cors, "Retry-After": "60" }
+        });
+      }
       const { plan, userId } = await request.json();
       const cfg = PLAN_CONFIG[plan];
-      if (!cfg) return new Response(JSON.stringify({ error: "Invalid plan" }), { status: 400, headers: CORS });
+      if (!cfg) return new Response(JSON.stringify({ error: "Invalid plan" }), { status: 400, headers: cors });
       const token = await getPayPalToken(env);
       const res = await fetch(`${env.PAYPAL_BASE}/v2/checkout/orders`, {
         method: "POST",
@@ -203,9 +252,9 @@ var index_default = {
         })
       });
       const order = await res.json();
-      if (!res.ok) return new Response(JSON.stringify(order), { status: res.status, headers: CORS });
+      if (!res.ok) return new Response(JSON.stringify(order), { status: res.status, headers: cors });
       const approvalUrl = order.links?.find((l) => l.rel === "approve")?.href;
-      return new Response(JSON.stringify({ orderId: order.id, approvalUrl }), { headers: CORS });
+      return new Response(JSON.stringify({ orderId: order.id, approvalUrl }), { headers: cors });
     }
     if (url.pathname === "/capture-order" && request.method === "POST") {
       const { orderId } = await request.json();
@@ -219,17 +268,17 @@ var index_default = {
       if (!res.ok) {
         const alreadyCaptured = Array.isArray(data.details) && data.details.some((d) => d.issue === "ORDER_ALREADY_CAPTURED");
         if (alreadyCaptured) {
-          return new Response(JSON.stringify({ success: true, alreadyCaptured: true }), { headers: CORS });
+          return new Response(JSON.stringify({ success: true, alreadyCaptured: true }), { headers: cors });
         }
-        return new Response(JSON.stringify({ success: false, error: data }), { status: 400, headers: CORS });
+        return new Response(JSON.stringify({ success: false, error: data }), { status: 400, headers: cors });
       }
       if (data.status !== "COMPLETED") {
-        return new Response(JSON.stringify({ success: false, error: data }), { status: 400, headers: CORS });
+        return new Response(JSON.stringify({ success: false, error: data }), { status: 400, headers: cors });
       }
       const customId = data.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id || "";
       const [userId, plan] = customId.split("|");
       if (!userId || !plan) {
-        return new Response(JSON.stringify({ success: false, error: "Missing custom_id" }), { status: 400, headers: CORS });
+        return new Response(JSON.stringify({ success: false, error: "Missing custom_id" }), { status: 400, headers: cors });
       }
       const cfg = PLAN_CONFIG[plan];
       const expiresAt = Date.now() + cfg.days * 86400 * 1e3;
@@ -237,18 +286,18 @@ var index_default = {
         expirationTtl: cfg.days * 86400
         // auto-expire from KV too
       });
-      return new Response(JSON.stringify({ success: true, userId, plan, expiresAt }), { headers: CORS });
+      return new Response(JSON.stringify({ success: true, userId, plan, expiresAt }), { headers: cors });
     }
     if (url.pathname === "/pro-status") {
       const userId = url.searchParams.get("userId");
-      if (!userId) return new Response(JSON.stringify({ isPro: false }), { headers: CORS });
+      if (!userId) return new Response(JSON.stringify({ isPro: false }), { headers: cors });
       const raw = await env.PRO_USERS.get(`pro:${userId}`);
-      if (!raw) return new Response(JSON.stringify({ isPro: false }), { headers: CORS });
+      if (!raw) return new Response(JSON.stringify({ isPro: false }), { headers: cors });
       const { plan, expiresAt } = JSON.parse(raw);
       const isPro = Date.now() < expiresAt;
-      return new Response(JSON.stringify({ isPro, plan, expiresAt }), { headers: CORS });
+      return new Response(JSON.stringify({ isPro, plan, expiresAt }), { headers: cors });
     }
-    return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: CORS });
+    return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: cors });
   }
 };
 function haversine(lat1, lon1, lat2, lon2) {
