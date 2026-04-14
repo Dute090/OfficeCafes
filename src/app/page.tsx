@@ -251,8 +251,17 @@ export default function Home() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem("perch_saved");
-      if (stored) setSavedCafes(JSON.parse(stored));
-    } catch {}
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Guard: filter out any stale string entries (old format was string[])
+        const valid = Array.isArray(parsed)
+          ? parsed.filter((c): c is Cafe => typeof c === "object" && c !== null && typeof c.id === "string" && typeof c.name === "string")
+          : [];
+        setSavedCafes(valid);
+        // Write back cleaned data
+        if (valid.length !== parsed.length) localStorage.setItem("perch_saved", JSON.stringify(valid));
+      }
+    } catch { localStorage.removeItem("perch_saved"); }
   }, []);
   // Load cafes on mount (works for both logged-in and guest users)
   useEffect(() => {
