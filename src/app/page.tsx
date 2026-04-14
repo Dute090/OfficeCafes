@@ -597,7 +597,7 @@ export default function Home() {
             onLogin={handleLogin}
             onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); try { localStorage.removeItem("perch_saved"); } catch {} setCafes([]); setUserCoords(null); setLocation(""); setLocationInput(""); }}
             onShowPro={() => setShowPro(true)}
-            onUnsave={(id) => handleToggleSave({ id } as Cafe)}
+            onUnsave={(id) => setSavedCafes(prev => { const next = prev.filter(c => c.id !== id); try { localStorage.setItem("perch_saved", JSON.stringify(next)); } catch {} return next; })}
             userName={session?.user?.name}
             userEmail={session?.user?.email} />
         )}
