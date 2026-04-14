@@ -232,7 +232,10 @@ export default function Home() {
   const isLoggedIn = status === "authenticated";
   const [isPro, setIsPro] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [savedCafes, setSavedCafes] = useState<string[]>([]);
+  const [savedCafes, setSavedCafes] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("perch_saved") || "[]"); } catch { return []; }
+  });
   const [cafes, setCafes] = useState<Cafe[]>([]);
   const [loadingCafes, setLoadingCafes] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -278,17 +281,30 @@ export default function Home() {
   }, [isLoggedIn]);
 
   // Check Pro status via server-side session (userId never exposed to client)
+  const checkProStatus = () => {
+    fetch(`/api/pro-status`)
+      .then(r => r.json())
+      .then((d: { isPro: boolean }) => { if (d.isPro) setIsPro(true); })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
-      fetch(`/api/pro-status`)
-        .then(r => r.json())
-        .then((d: { isPro: boolean }) => { if (d.isPro) setIsPro(true); })
-        .catch(() => {});
+      checkProStatus();
+      // Re-check when user returns to tab (e.g. after PayPal redirect)
+      const onVisible = () => { if (document.visibilityState === "visible") checkProStatus(); };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => document.removeEventListener("visibilitychange", onVisible);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
   const handleToggleSave = (id: string) => {
-    setSavedCafes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSavedCafes(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      try { localStorage.setItem("perch_saved", JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
   const FREE_REFRESH_LIMIT = 0; // any manual location change requires Pro
 
@@ -495,27 +511,27 @@ export default function Home() {
         {tab === "search" && (<>
           <div style={{ padding: "28px 0 16px" }}>
             <h2 style={{ fontSize: 26, fontWeight: 700, color: "#1C1C1A", letterSpacing: -0.5, marginBottom: 4 }}>Search cafés</h2>
-            <p style={{ fontSize: 13.5, color: "#7A6E65", marginBottom: 14 }}>{isPro ? "Search any café citywide — no distance limit." : "Pro: search any café citywide, no distance limit."}</p>
+            <p style={{ fontSize: 13.5, color: "#7A6E65", marginBottom: 14 }}>{isPro ? "Search any café citywide — no distance limit." : "Search nearby cafés. Upgrade to Pro for citywide search."}</p>
             <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 12, padding: "11px 15px" }}>
               <span style={{ fontSize: 15, color: "#B0A498" }}>⌕</span>
-              <input autoFocus type="text" placeholder="Café name or address..." value={search}
-                onChange={e => { if (!isLoggedIn) { setShowLogin(true); return; } if (!isPro) { setShowPro(true); return; } setSearch(e.target.value); }}
+              <input autoFocus type="text" placeholder="Café name..." value={search}
+                onChange={e => { if (!isLoggedIn) { setShowLogin(true); return; } setSearch(e.target.value); }}
                 style={{ flex: 1, background: "none", border: "none", fontSize: 15, color: "#1C1C1A", outline: "none" }} />
             </div>
           </div>
           {!isLoggedIn && <button onClick={() => setShowLogin(true)} style={{ width: "100%", background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 13, padding: "16px", textAlign: "center", cursor: "pointer" }}><p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A" }}>Sign in to search</p></button>}
+          {isLoggedIn && search === "" && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Type a café name to search.</p>}
+          {isLoggedIn && search !== "" && filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
+          {isLoggedIn && search !== "" && filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>No results for &ldquo;{search}&rdquo;</p>}
           {isLoggedIn && !isPro && (
-            <button onClick={() => setShowPro(true)} style={{ width: "100%", background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 13, padding: "15px 16px", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={() => setShowPro(true)} style={{ width: "100%", marginTop: 14, background: "#fff", border: "1.5px solid #EDE9E3", borderRadius: 13, padding: "15px 16px", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <p style={{ fontSize: 14.5, fontWeight: 600, color: "#1C1C1A", marginBottom: 3 }}>Full search is Pro only 🔒</p>
-                <p style={{ fontSize: 13, color: "#7A6E65" }}>Citywide · no distance limit · unlimited</p>
+                <p style={{ fontSize: 14.5, fontWeight: 600, color: "#1C1C1A", marginBottom: 3 }}>Citywide search 🔒</p>
+                <p style={{ fontSize: 13, color: "#7A6E65" }}>No distance limit · unlimited searches</p>
               </div>
               <span style={{ color: "#C8956C", fontSize: 13.5, fontWeight: 600, flexShrink: 0, marginLeft: 12 }}>Upgrade →</span>
             </button>
           )}
-          {isPro && search === "" && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Type to search any café, citywide.</p>}
-          {isPro && filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
-          {isPro && search !== "" && filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>No results for &ldquo;{search}&rdquo;</p>}
         </>)}
 
         {tab === "account" && (
