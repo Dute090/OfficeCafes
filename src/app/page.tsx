@@ -152,7 +152,7 @@ function ProSheet({ onClose, onUpgrade, userId }: { onClose: () => void; onUpgra
   );
 }
 
-function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLogout, onShowPro, onUnsave, userName, userEmail }: { isLoggedIn: boolean; isPro: boolean; savedCafes: string[]; allCafes: Cafe[]; onLogin: () => void; onLogout: () => void; onShowPro: () => void; onUnsave: (id: string) => void; userName?: string | null; userEmail?: string | null }) {
+function AccountSection({ isLoggedIn, isPro, savedCafes, onLogin, onLogout, onShowPro, onUnsave, userName, userEmail }: { isLoggedIn: boolean; isPro: boolean; savedCafes: Cafe[]; onLogin: () => void; onLogout: () => void; onShowPro: () => void; onUnsave: (id: string) => void; userName?: string | null; userEmail?: string | null }) {
   if (!isLoggedIn) return (
     <div style={{ padding: "36px 0" }}>
       <h2 style={{ fontSize: 26, fontWeight: 700, color: "#1C1C1A", letterSpacing: -0.5, marginBottom: 8 }}>Account</h2>
@@ -191,15 +191,13 @@ function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLo
         <p style={{ fontWeight: 600, fontSize: 14.5, color: "#1C1C1A", marginBottom: 8 }}>Saved Spots</p>
         {isPro
           ? savedCafes.length > 0
-            ? (() => {
-                const saved = allCafes.filter(c => savedCafes.includes(c.id));
-                return (
+            ? (
                   <div>
-                    {saved.map((cafe, i) => (
-                      <div key={cafe.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < saved.length - 1 ? "1px solid #F0EDE8" : "none" }}>
+                    {savedCafes.map((cafe, i) => (
+                      <div key={cafe.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < savedCafes.length - 1 ? "1px solid #F0EDE8" : "none" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontWeight: 600, fontSize: 14, color: "#1C1C1A", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cafe.name}</p>
-                          <p style={{ fontSize: 12, color: "#7A6E65" }}>{cafe.distance} away · {cafe.isOpen ? "Open" : "Closed"}</p>
+                          <p style={{ fontSize: 12, color: "#7A6E65" }}>{cafe.address.split(",")[0]} · {cafe.isOpen ? "Open" : "Closed"}</p>
                         </div>
                         <button
                           onClick={() => onUnsave(cafe.id)}
@@ -209,8 +207,7 @@ function AccountSection({ isLoggedIn, isPro, savedCafes, allCafes, onLogin, onLo
                       </div>
                     ))}
                   </div>
-                );
-              })()
+              )
             : <p style={{ fontSize: 13.5, color: "#B0A498" }}>No saved spots yet. Tap ♡ on any café to save it.</p>
           : <button onClick={onShowPro} style={{ background: "none", border: "none", fontSize: 13.5, color: "#C8956C", cursor: "pointer", padding: 0 }}>Unlock with Pro →</button>}
       </div>
@@ -232,7 +229,7 @@ export default function Home() {
   const isLoggedIn = status === "authenticated";
   const [isPro, setIsPro] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [savedCafes, setSavedCafes] = useState<string[]>([]);
+  const [savedCafes, setSavedCafes] = useState<Cafe[]>([]);
   const [cafes, setCafes] = useState<Cafe[]>([]);
   const [loadingCafes, setLoadingCafes] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -257,7 +254,6 @@ export default function Home() {
       if (stored) setSavedCafes(JSON.parse(stored));
     } catch {}
   }, []);
-
   // Load cafes when user logs in
   useEffect(() => {
     if (isLoggedIn && cafes.length === 0) {
@@ -309,9 +305,10 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
-  const handleToggleSave = (id: string) => {
+  const handleToggleSave = (cafe: Cafe) => {
     setSavedCafes(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      const exists = prev.some(c => c.id === cafe.id);
+      const next = exists ? prev.filter(c => c.id !== cafe.id) : [...prev, cafe];
       try { localStorage.setItem("perch_saved", JSON.stringify(next)); } catch {}
       return next;
     });
@@ -514,7 +511,7 @@ export default function Home() {
 
           {/* List: only shown after login + location resolved */}
           {isLoggedIn && !loadingCafes && cafes.length > 0 && (<>
-            {filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
+            {filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.some(c => c.id === cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={() => handleToggleSave(cafe)} />)}
             {filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, textAlign: "center", paddingTop: 32 }}>No cafés found</p>}
 
             {!isPro && filtered.length > 0 && (
@@ -551,7 +548,7 @@ export default function Home() {
           {!isLoggedIn && <button onClick={() => setShowLogin(true)} style={{ width: "100%", background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 13, padding: "16px", textAlign: "center", cursor: "pointer" }}><p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A" }}>Sign in to search</p></button>}
           {isLoggedIn && cafes.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Go to Home tab first to load nearby cafés.</p>}
           {isLoggedIn && cafes.length > 0 && search === "" && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Type a café name to search.</p>}
-          {isLoggedIn && search !== "" && filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
+          {isLoggedIn && search !== "" && filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.some(c => c.id === cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={() => handleToggleSave(cafe)} />)}
           {isLoggedIn && search !== "" && filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>No results for &ldquo;{search}&rdquo;</p>}
           {isLoggedIn && !isPro && (
             <button onClick={() => setShowPro(true)} style={{ width: "100%", marginTop: 14, background: "#fff", border: "1.5px solid #EDE9E3", borderRadius: 13, padding: "15px 16px", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -565,11 +562,11 @@ export default function Home() {
         </>)}
 
         {tab === "account" && (
-          <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes} allCafes={cafes}
+          <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes}
             onLogin={handleLogin}
-            onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes([]); setUserCoords(null); setLocation(""); setLocationInput(""); }}
+            onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); try { localStorage.removeItem("perch_saved"); } catch {} setCafes([]); setUserCoords(null); setLocation(""); setLocationInput(""); }}
             onShowPro={() => setShowPro(true)}
-            onUnsave={handleToggleSave}
+            onUnsave={(id) => handleToggleSave({ id } as Cafe)}
             userName={session?.user?.name}
             userEmail={session?.user?.email} />
         )}
