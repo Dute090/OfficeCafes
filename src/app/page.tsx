@@ -232,10 +232,7 @@ export default function Home() {
   const isLoggedIn = status === "authenticated";
   const [isPro, setIsPro] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [savedCafes, setSavedCafes] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("perch_saved") || "[]"); } catch { return []; }
-  });
+  const [savedCafes, setSavedCafes] = useState<string[]>([]);
   const [cafes, setCafes] = useState<Cafe[]>([]);
   const [loadingCafes, setLoadingCafes] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -252,6 +249,14 @@ export default function Home() {
   const handleLogin = () => {
     signIn("google");
   };
+
+  // Load saved cafes from localStorage (client-only)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("perch_saved");
+      if (stored) setSavedCafes(JSON.parse(stored));
+    } catch {}
+  }, []);
 
   // Load cafes when user logs in
   useEffect(() => {
