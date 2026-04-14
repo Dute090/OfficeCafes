@@ -254,37 +254,37 @@ export default function Home() {
       if (stored) setSavedCafes(JSON.parse(stored));
     } catch {}
   }, []);
-  // Load cafes when user logs in
+  // Load cafes on mount (works for both logged-in and guest users)
   useEffect(() => {
-    if (isLoggedIn && cafes.length === 0) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            const { latitude: lat, longitude: lng } = pos.coords;
-            setUserCoords({ lat, lng });
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en" } })
-              .then(r => r.json())
-              .then((d: { address?: { city?: string; town?: string; state?: string } }) => {
-                const a = d.address || {};
-                const city = a.city || a.town || "";
-                const state = a.state || "";
-                const readable = [city, state].filter(Boolean).join(", ");
-                if (readable) { setLocation(readable); setLocationInput(readable); }
-              })
-              .catch(() => {});
-            loadRealCafes(lat, lng);
-          },
-          () => {
-                      // GPS denied — prompt manual input
+    if (cafes.length === 0 && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          setUserCoords({ lat, lng });
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { "Accept-Language": "en" } })
+            .then(r => r.json())
+            .then((d: { address?: { city?: string; town?: string; state?: string } }) => {
+              const a = d.address || {};
+              const city = a.city || a.town || "";
+              const state = a.state || "";
+              const readable = [city, state].filter(Boolean).join(", ");
+              if (readable) { setLocation(readable); setLocationInput(readable); }
+            })
+            .catch(() => {});
+          loadRealCafes(lat, lng);
+        },
+        () => {
+          // GPS denied — prompt manual input only if logged in
+          if (isLoggedIn) {
             setLocation("");
             setLocationInput("");
             setEditingLocation(true);
           }
-        );
-      }
+        }
+      );
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn]);
+  }, []);
 
   // Check Pro status via server-side session (userId never exposed to client)
   const checkProStatus = () => {
@@ -316,6 +316,10 @@ export default function Home() {
   const FREE_REFRESH_LIMIT = 0; // any manual location change requires Pro
 
   const filtered = cafes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  // Free users: show only first 3 cafes; guests: show all but no tags
+  const FREE_CAFE_LIMIT = 3;
+  const FREE_TAG_LIMIT = 3;
+  const displayedCafes = isPro ? filtered : isLoggedIn ? filtered.slice(0, FREE_CAFE_LIMIT) : filtered;
   // Only block when user actively tries to refresh/change location again
   const limitReached = isLoggedIn && !isPro && refreshCount >= FREE_REFRESH_LIMIT;
 
@@ -471,7 +475,34 @@ export default function Home() {
             )}
           </div>
 
-          {!isLoggedIn && (
+          {!isLoggedIn && loadingCafes && (
+            <div>
+              {[1,2,3].map(i => (
+                <div key={i} style={{ background: "#fff", borderRadius: 16, marginBottom: 10, border: "1px solid #EDE9E3", overflow: "hidden", padding: "13px 16px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 13 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 14, borderRadius: 7, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", marginBottom: 8, width: "55%" }} />
+                      <div style={{ height: 11, borderRadius: 6, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", marginBottom: 6, width: "35%" }} />
+                      <div style={{ height: 11, borderRadius: 6, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", width: "70%" }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }`}</style>
+            </div>
+          )}
+
+          {/* Guest: show real cafes, no tags, sign-in prompt */}
+          {!isLoggedIn && !loadingCafes && cafes.length > 0 && (<>
+            {displayedCafes.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={false} isLoggedIn={false} onLoginRequired={() => setShowLogin(true)} onProRequired={() => setShowPro(true)} />)}
+            <button onClick={() => setShowLogin(true)} style={{ width: "100%", marginTop: 6, background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 13, padding: "18px", textAlign: "center", cursor: "pointer" }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A", marginBottom: 4 }}>Sign in to see office tags</p>
+              <p style={{ fontSize: 13, color: "#7A6E65" }}>Free · takes 10 seconds with Google</p>
+            </button>
+          </>)}
+
+          {!isLoggedIn && !loadingCafes && cafes.length === 0 && (
             <button onClick={() => setShowLogin(true)} style={{ width: "100%", background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 13, padding: "18px", textAlign: "center", cursor: "pointer" }}>
               <p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A", marginBottom: 4 }}>Sign in to see nearby cafés</p>
               <p style={{ fontSize: 13, color: "#7A6E65" }}>Free to browse — no credit card needed</p>
@@ -509,15 +540,15 @@ export default function Home() {
             </div>
           )}
 
-          {/* List: only shown after login + location resolved */}
+          {/* List: logged-in users */}
           {isLoggedIn && !loadingCafes && cafes.length > 0 && (<>
-            {filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.some(c => c.id === cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={() => handleToggleSave(cafe)} />)}
+            {displayedCafes.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.some(c => c.id === cafe.id)} tagLimit={FREE_TAG_LIMIT} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={() => handleToggleSave(cafe)} />)}
             {filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, textAlign: "center", paddingTop: 32 }}>No cafés found</p>}
 
             {!isPro && filtered.length > 0 && (
               <button onClick={() => setShowPro(true)} style={{ width: "100%", marginTop: 6, background: "#F5F2EE", border: "1.5px dashed #D0CBC4", borderRadius: 14, padding: "18px 20px", cursor: "pointer", textAlign: "center" }}>
-                <p style={{ fontSize: 15, fontWeight: 600, color: "#3A3028", marginBottom: 5 }}>More cafés in your area</p>
-                <p style={{ fontSize: 13, color: "#7A6E65", lineHeight: 1.55, marginBottom: 12 }}>More cafés · office tags · save your favorites</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "#3A3028", marginBottom: 5 }}>See all cafés near you</p>
+                <p style={{ fontSize: 13, color: "#7A6E65", lineHeight: 1.55, marginBottom: 12 }}>More cafés · all office tags · save your favorites</p>
                 <span style={{ display: "inline-block", background: "#C8956C", color: "#fff", fontWeight: 700, fontSize: 13.5, borderRadius: 9, padding: "8px 18px" }}>
                   Less than a latte — $2.99 for 7 days
                 </span>
@@ -525,7 +556,7 @@ export default function Home() {
             )}
           </>)}
 
-          {/* Logged in, location set, but no cafes loaded yet (denied geolocation, waiting for manual input) */}
+          {/* Logged in, no cafes yet */}
           {isLoggedIn && !loadingCafes && cafes.length === 0 && (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A", marginBottom: 6 }}>Where are you working from?</p>
