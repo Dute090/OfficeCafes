@@ -273,7 +273,12 @@ export default function Home() {
               .catch(() => {});
             loadRealCafes(lat, lng);
           },
-          () => {}
+          () => {
+                      // GPS denied — prompt manual input
+            setLocation("");
+            setLocationInput("");
+            setEditingLocation(true);
+          }
         );
       }
     }
@@ -332,6 +337,8 @@ export default function Home() {
         const lng = parseFloat(geoData[0].lon);
         setUserCoords({ lat, lng });
         loadRealCafes(lat, lng);
+      } else {
+        setLoadingCafes(false);
       }
     } catch {
       setLoadingCafes(false);
@@ -478,8 +485,25 @@ export default function Home() {
           )}
 
           {isLoggedIn && loadingCafes && (
-            <div style={{ textAlign: "center", padding: "32px 0", color: "#7A6E65", fontSize: 14 }}>
-              ☕ Finding cafés near you...
+            <div>
+              {[1,2,3].map(i => (
+                <div key={i} style={{ background: "#fff", borderRadius: 16, marginBottom: 10, border: "1px solid #EDE9E3", overflow: "hidden", padding: "13px 16px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 13 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ height: 14, borderRadius: 7, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", marginBottom: 8, width: "55%" }} />
+                      <div style={{ height: 11, borderRadius: 6, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", marginBottom: 6, width: "35%" }} />
+                      <div style={{ height: 11, borderRadius: 6, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", width: "70%" }} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                    {[80, 100, 70].map((w, j) => (
+                      <div key={j} style={{ height: 24, borderRadius: 7, background: "#F0EDE8", animation: "pulse 1.4s ease-in-out infinite", width: w }} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }`}</style>
             </div>
           )}
 
@@ -520,7 +544,8 @@ export default function Home() {
             </div>
           </div>
           {!isLoggedIn && <button onClick={() => setShowLogin(true)} style={{ width: "100%", background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 13, padding: "16px", textAlign: "center", cursor: "pointer" }}><p style={{ fontSize: 15, fontWeight: 600, color: "#1C1C1A" }}>Sign in to search</p></button>}
-          {isLoggedIn && search === "" && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Type a café name to search.</p>}
+          {isLoggedIn && cafes.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Go to Home tab first to load nearby cafés.</p>}
+          {isLoggedIn && cafes.length > 0 && search === "" && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>Type a café name to search.</p>}
           {isLoggedIn && search !== "" && filtered.map(cafe => <CafeCard key={cafe.id} cafe={cafe} isPro={isPro} isLoggedIn={isLoggedIn} isSaved={savedCafes.includes(cafe.id)} onProRequired={() => setShowPro(true)} onLoginRequired={() => setShowLogin(true)} onToggleSave={handleToggleSave} />)}
           {isLoggedIn && search !== "" && filtered.length === 0 && <p style={{ color: "#B0A498", fontSize: 14.5, paddingTop: 8 }}>No results for &ldquo;{search}&rdquo;</p>}
           {isLoggedIn && !isPro && (
@@ -537,7 +562,7 @@ export default function Home() {
         {tab === "account" && (
           <AccountSection isLoggedIn={isLoggedIn} isPro={isPro} savedCafes={savedCafes} allCafes={cafes}
             onLogin={handleLogin}
-            onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes(demoCafes); setUserCoords(null); }}
+            onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); setCafes([]); setUserCoords(null); setLocation(""); setLocationInput(""); }}
             onShowPro={() => setShowPro(true)}
             onUnsave={handleToggleSave}
             userName={session?.user?.name}
