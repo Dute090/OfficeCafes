@@ -11,16 +11,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   callbacks: {
     jwt({ token, profile }) {
-      // Lock userId to Google email — stable across all sessions
-      if (profile?.email) {
-        token.userId = profile.email;
+      // profile is only present on first sign-in; token.email is always present
+      // Use email as stable userId — never changes across sessions
+      if (!token.stableId) {
+        token.stableId = (profile?.email as string) ?? (token.email as string) ?? token.sub;
       }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
-        // Use email as stable userId, fallback to token.sub
-        session.user.id = (token.userId as string) ?? token.sub ?? session.user.email ?? "";
+        session.user.id = (token.stableId as string) ?? session.user.email ?? token.sub ?? "";
       }
       return session;
     },
