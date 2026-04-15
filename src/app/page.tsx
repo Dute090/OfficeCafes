@@ -247,22 +247,29 @@ export default function Home() {
     signIn("google");
   };
 
-  // Load saved cafes from localStorage (client-only)
+};
+
+  // Load saved cafes from server (Pro users) or localStorage (fallback)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("perch_saved");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Guard: filter out any stale string entries (old format was string[])
-        const valid = Array.isArray(parsed)
-          ? parsed.filter((c): c is Cafe => typeof c === "object" && c !== null && typeof c.id === "string" && typeof c.name === "string")
-          : [];
-        setSavedCafes(valid);
-        // Write back cleaned data
-        if (valid.length !== parsed.length) localStorage.setItem("perch_saved", JSON.stringify(valid));
-      }
-    } catch { localStorage.removeItem("perch_saved"); }
-  }, []);
+    if (!isLoggedIn) return;
+    // Try server first via Next.js API proxy
+    fetch("/api/saved-cafes")
+      .then(r => r.json())
+      .then((d: { saved: Cafe[] }) => { if (Array.isArray(d.saved)) setSavedCafes(d.saved); })
+      .catch(() => {
+        // Fallback to localStorage
+        try {
+          const stored = localStorage.getItem("perch_saved");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            const valid = Array.isArray(parsed)
+              ? parsed.filter((c): c is Cafe => typeof c === "object" && c !== null && typeof c.id === "string" && typeof c.name === "string")
+              : [];
+            setSavedCafes(valid);
+          }
+        } catch {}
+      });
+  }, [isLoggedIn]);
   // Load cafes on mount (works for both logged-in and guest users)
   useEffect(() => {
     if (cafes.length === 0 && navigator.geolocation) {
@@ -315,12 +322,15 @@ export default function Home() {
   }, [isLoggedIn]);
 
   const handleToggleSave = (cafe: Cafe) => {
-    setSavedCafes(prev => {
-      const exists = prev.some(c => c.id === cafe.id);
-      const next = exists ? prev.filter(c => c.id !== cafe.id) : [...prev, cafe];
-      try { localStorage.setItem("perch_saved", JSON.stringify(next)); } catch {}
-      return next;
-    });
+    const exists = savedCafes.some(c => c.id === cafe.id);
+    const next = exists ? savedCafes.filter(c => c.id !== cafe.id) : [...savedCafes, cafe];
+    setSavedCafes(next);
+    // Sync to server
+    fetch("/api/saved-cafes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cafe, action: exists ? "remove" : "add" }),
+    }).catch(() => {});
   };
   const FREE_REFRESH_LIMIT = 0; // any manual location change requires Pro
 
@@ -606,7 +616,7 @@ export default function Home() {
             onLogin={handleLogin}
             onLogout={() => { signOut(); setIsPro(false); setRefreshCount(0); setSavedCafes([]); try { localStorage.removeItem("perch_saved"); } catch {} setCafes([]); setUserCoords(null); setLocation(""); setLocationInput(""); }}
             onShowPro={() => setShowPro(true)}
-            onUnsave={(id) => setSavedCafes(prev => { const next = prev.filter(c => c.id !== id); try { localStorage.setItem("perch_saved", JSON.stringify(next)); } catch {} return next; })}
+            onUnsave={(id) => { const cafe = savedCafes.find(c => c.id === id); if (cafe) handleToggleSave(cafe); }}
             userName={session?.user?.name}
             userEmail={session?.user?.email} />
         )}

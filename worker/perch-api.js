@@ -297,6 +297,28 @@ var index_default = {
       const isPro = Date.now() < expiresAt;
       return new Response(JSON.stringify({ isPro, plan, expiresAt }), { headers: cors });
     }
+    // Saved cafes: GET /saved-cafes?userId=xxx
+    if (url.pathname === "/saved-cafes" && request.method === "GET") {
+      const userId = url.searchParams.get("userId");
+      if (!userId) return new Response(JSON.stringify({ saved: [] }), { headers: cors });
+      const raw = await env.PRO_USERS.get(`saved:${userId}`);
+      const saved = raw ? JSON.parse(raw) : [];
+      return new Response(JSON.stringify({ saved }), { headers: cors });
+    }
+    // Saved cafes: POST /saved-cafes { userId, cafe, action: "add"|"remove" }
+    if (url.pathname === "/saved-cafes" && request.method === "POST") {
+      const { userId, cafe, action } = await request.json();
+      if (!userId || !cafe?.id) return new Response(JSON.stringify({ error: "Missing params" }), { status: 400, headers: cors });
+      const raw = await env.PRO_USERS.get(`saved:${userId}`);
+      let saved = raw ? JSON.parse(raw) : [];
+      if (action === "add") {
+        if (!saved.some(c => c.id === cafe.id)) saved.push(cafe);
+      } else {
+        saved = saved.filter(c => c.id !== cafe.id);
+      }
+      await env.PRO_USERS.put(`saved:${userId}`, JSON.stringify(saved));
+      return new Response(JSON.stringify({ saved }), { headers: cors });
+    }
     return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: cors });
   }
 };
