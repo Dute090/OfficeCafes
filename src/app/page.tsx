@@ -247,8 +247,6 @@ export default function Home() {
     signIn("google");
   };
 
-};
-
   // Load saved cafes from server (Pro users) or localStorage (fallback)
   useEffect(() => {
     if (!isLoggedIn) return;
