@@ -443,6 +443,11 @@ export default function Home() {
             <p style={{ fontSize: 15, color: "#6B5E53", lineHeight: 1.7 }}>
               Outlets, noise level, and more — know before you go.
             </p>
+            {!isLoggedIn && (
+              <button onClick={() => setShowLogin(true)} style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 8, background: "#C8956C", color: "#fff", border: "none", borderRadius: 13, padding: "13px 22px", fontSize: 15, fontWeight: 700, cursor: "pointer", letterSpacing: -0.2 }}>
+                Sign in free →
+              </button>
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1.5px solid #E0DBD5", borderRadius: 12, padding: "11px 15px", marginBottom: 18 }}>
