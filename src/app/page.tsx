@@ -630,6 +630,10 @@ export default function Home() {
 
       {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={() => { handleLogin(); setShowLogin(false); }} />}
       {showPro && <ProSheet onClose={() => setShowPro(false)} onUpgrade={() => { setIsPro(true); setShowPro(false); }} userId={session?.user?.id ?? undefined} />}
+
+      <footer style={{ textAlign: "center", padding: "20px 16px 32px", color: "#B0A498", fontSize: 12 }}>
+        Questions or feedback? <a href="mailto:ygtc090@gmail.com" style={{ color: "#C8956C", textDecoration: "none" }}>ygtc090@gmail.com</a>
+      </footer>
     </div>
   );
 }
