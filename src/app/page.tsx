@@ -335,7 +335,7 @@ export default function Home() {
   const filtered = cafes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
   // Free users: show only first 3 cafes; guests: show all but no tags
   const FREE_CAFE_LIMIT = 3;
-  const FREE_TAG_LIMIT = 3;
+  const FREE_TAG_LIMIT = 1;
   const displayedCafes = isPro ? filtered : filtered.slice(0, FREE_CAFE_LIMIT);
   // Only block when user actively tries to refresh/change location again
   const limitReached = isLoggedIn && !isPro && refreshCount >= FREE_REFRESH_LIMIT;
